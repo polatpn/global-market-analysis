@@ -2,35 +2,38 @@ import yfinance as yf
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# Veri sembolleri: Brent Petrol (BZ=F) ve Dolar/TL (USDTRY=X)
-symbols = ['BZ=F', 'USDTRY=X']
+# Daha kararlı çalışan tickerlar: CL=F (Petrol) ve USDTRY=X (Dolar)
+symbols = ['CL=F', 'USDTRY=X']
 
-print("Petrol ve Kur verileri çekiliyor...")
+print("Veriler çekiliyor ve temizleniyor...")
 
-# 2024 başından itibaren verileri alalım
-data = yf.download(symbols, start="2024-01-01")['Close']
+# Verileri çekelim
+raw_data = yf.download(symbols, start="2024-01-01")['Close']
 
-# Sütunları isimlendirelim
-data.columns = ['Brent_Petrol', 'USD_TRY']
+# EKSİK VERİ KONTROLÜ: Boş satırları bir önceki günle doldur veya sil
+data = raw_data.ffill().dropna() 
 
-# Basit bir 'Yerel Maliyet Endeksi' oluşturalım (Brent * Dolar)
-# Bu, pompadaki fiyat artışının ana itici gücüdür.
-data['Maliyet_Endeksi'] = data['Brent_Petrol'] * data['USD_TRY']
+# Sütun isimlerini garantiye alalım
+# yfinance alfabetik getirir: CL=F (Petrol), USDTRY=X (Dolar)
+data.columns = ['Petrol', 'Dolar']
 
-# Verileri normalize edelim (Grafikte yan yana görebilmek için)
+# Yerel Maliyet Endeksi
+data['Maliyet_Endeksi'] = data['Petrol'] * data['Dolar']
+
+# Normalizasyon: İlk GEÇERLİ güne bölüyoruz
 normalized = (data / data.iloc[0]) * 100
 
 # Görselleştirme
 plt.figure(figsize=(14, 7))
-plt.plot(normalized['Brent_Petrol'], label='Brent Petrol (Global)', color='blue', alpha=0.7)
-plt.plot(normalized['USD_TRY'], label='USD/TRY Kuru (Yerel)', color='green', alpha=0.7)
-plt.plot(normalized['Maliyet_Endeksi'], label='Tahmini Akaryakıt Maliyet Baskısı', color='red', linewidth=2)
+plt.plot(normalized['Petrol'], label='Petrol (Global)', color='blue', alpha=0.6)
+plt.plot(normalized['Dolar'], label='Dolar/TL (Yerel)', color='green', alpha=0.6)
+plt.plot(normalized['Maliyet_Endeksi'], label='Toplam Maliyet Baskısı', color='red', linewidth=2.5)
 
-plt.title('Akaryakıt Fiyatlarını Etkileyen Faktörlerin Analizi (2024-2026)')
-plt.ylabel('Başlangıca Göre Değişim (%)')
+plt.title('Akaryakıt Maliyet Analizi: Dolar mı Petrol mü?')
+plt.ylabel('Değişim (%) (Başlangıç = 100)')
 plt.legend()
-plt.grid(True, linestyle='--', alpha=0.6)
+plt.grid(True, alpha=0.3)
 
 # Kaydet
 plt.savefig('fuel_analysis.png')
-print("Analiz tamamlandı! 'fuel_analysis.png' oluşturuldu.")
+print("İşlem tamam! Şimdi 'fuel_analysis.png' dosyasını tekrar kontrol et.")
